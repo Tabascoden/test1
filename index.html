@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Аджапури — змейка с хинкали</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding-bottom: 140px; /* отступ под системные кнопки телефона + блок управления */
+      touch-action: manipulation;
+    }
+
+    .page {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 12px 12px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .brand-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-name a {
+      color: #ff7a00;
+      text-decoration: none;
+    }
+
+    .brand-name a:hover {
+      text-decoration: underline;
+    }
+
+    .brand-subtitle {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .status {
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+    }
+
+    .score {
+      font-weight: 500;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .highscore {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
+
+    .pause-btn {
+      margin-top: 2px;
+      border: none;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      background: rgba(30, 30, 30, 0.95);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pause-btn span.icon {
+      font-size: 0.8rem;
+    }
+
+    .pause-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    }
+
+    .game-wrapper {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    canvas {
+      background: radial-gradient(circle at top, #333 0, #111 55%, #000 100%);
+      border-radius: 18px;
+      border: 2px solid #ff7a00;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      touch-action: none;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      opacity: 0.7;
+      text-align: center;
+    }
+
+    /* Оверлеи: старт, пауза, game over */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      z-index: 20;
+      padding: 16px;
+    }
+
+    .overlay--hidden {
+      display: none;
+    }
+
+    .overlay-card {
+      width: 100%;
+      max-width: 420px;
+      background: linear-gradient(145deg, #1b1b1b, #111);
+      border-radius: 20px;
+      padding: 18px 18px 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      border: 1px solid rgba(255,122,0,0.3);
+    }
+
+    .overlay-title {
+      margin: 0 0 4px;
+      font-size: 1.3rem;
+    }
+
+    .overlay-subtitle {
+      margin: 0 0 10px;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .overlay-slogan {
+      margin: 10px 0;
+      font-size: 0.95rem;
+      color: #ffb347;
+      font-weight: 600;
+    }
+
+    .overlay-score-line {
+      margin: 4px 0;
+      font-size: 0.9rem;
+    }
+
+    .overlay-btn {
+      margin-top: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: linear-gradient(120deg, #ff7a00, #ffb347);
+      color: #111;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.7);
+    }
+
+    .overlay-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+    }
+
+    .overlay-small {
+      margin-top: 6px;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    /* Блок управления на экране */
+    .controls {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+      background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.6));
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .controls-inner {
+      pointer-events: auto;
+      display: grid;
+      grid-template-columns: repeat(3, 70px);
+      grid-template-rows: repeat(3, 70px);
+      gap: 8px;
+      touch-action: manipulation;
+    }
+
+    .control-btn {
+      border: none;
+      border-radius: 16px;
+      background: rgba(30, 30, 30, 0.95);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, background 0.05s ease;
+      user-select: none;
+    }
+
+    .control-btn--empty {
+      background: transparent;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .control-btn:not(.control-btn--empty):active {
+      transform: translateY(2px) scale(0.97);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      background: rgba(45, 45, 45, 0.95);
+    }
+
+    .control-btn span {
+      pointer-events: none;
+    }
+
+    .control-up    { grid-column: 2; grid-row: 1; }
+    .control-left  { grid-column: 1; grid-row: 2; }
+    .control-right { grid-column: 3; grid-row: 2; }
+    .control-down  { grid-column: 2; grid-row: 3; }
+
+    @media (min-width: 768px) {
+      body {
+        padding-bottom: 160px;
+      }
+      .controls-inner {
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="brand">
+        <!-- Положите рядом с файлом картинку логотипа сайта и назовите её logo-adjapuri.png -->
+        <img src="logo-adjapuri.png" alt="Аджапури" class="logo">
+        <div class="brand-text">
+          <div class="brand-name">
+            <a href="https://adjapuri.ru" target="_blank" rel="noopener noreferrer">Аджапури</a>
+          </div>
+          <div class="brand-subtitle">Змейка, которая ест хинкали</div>
+        </div>
+      </div>
+      <div class="status">
+        <div class="score" id="score">Счёт: 0 хинкали</div>
+        <div class="highscore" id="highscore">Рекорд: 0</div>
+        <button class="pause-btn" id="pauseBtn" type="button">
+          <span class="icon">❚❚</span>
+          <span>Пауза</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="game-wrapper">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div class="hint">
+      Нажми «Старт» и управляй стрелками на экране. Не врежься в стену и в себя — собирай как можно больше хинкали!
+    </div>
+  </div>
+
+  <!-- Оверлей старт/обучение -->
+  <div class="overlay" id="startOverlay">
+    <div class="overlay-card">
+      <h1 class="overlay-title">Аджапури Змейка</h1>
+      <p class="overlay-subtitle">
+        Змейка охотится за сочными хинкали. Управляй стрелками на экране —
+        плита отдыхает, ты играешь.
+      </p>
+      <p class="overlay-small">
+        Если нужно остановиться — нажми кнопку «Пауза» в правом верхнем углу.
+      </p>
+      <button class="overlay-btn" id="startBtn">Начать игру</button>
+    </div>
+  </div>
+
+  <!-- Оверлей паузы -->
+  <div class="overlay overlay--hidden" id="pauseOverlay">
+    <div class="overlay-card">
+      <h2 class="overlay-title">Пауза</h2>
+      <p class="overlay-subtitle">
+        Сделай глоток чая — хинкали подождут. Жми «Продолжить», чтобы вернуться в игру.
+      </p>
+      <button class="overlay-btn" id="resumeBtn">Продолжить</button>
+      <p class="overlay-small">
+        Совсем заигрался? Можно выйти и вернуться позже — рекорд сохранится.
+      </p>
+    </div>
+  </div>
+
+  <!-- Оверлей Game Over -->
+  <div class="overlay overlay--hidden" id="gameOverOverlay">
+    <div class="overlay-card">
+      <h2 class="overlay-title">Игра окончена</h2>
+      <p class="overlay-slogan">Плита отдыхает — Аджапури выручает!</p>
+      <p class="overlay-score-line">
+        Счёт: <strong><span id="finalScore">0</span> хинкали</strong>
+      </p>
+      <p class="overlay-score-line">
+        Рекорд: <strong><span id="finalBest">0</span></strong>
+      </p>
+      <button class="overlay-btn" id="restartBtn">Играть ещё</button>
+      <p class="overlay-small">
+        Попробуй собрать ещё больше хинкали за один заход.
+      </p>
+    </div>
+  </div>
+
+  <!-- Блок управления на дисплее -->
+  <div class="controls">
+    <div class="controls-inner">
+      <button class="control-btn control-up" data-dir="up"><span>▲</span></button>
+      <button class="control-btn control-btn--empty" disabled></button>
+      <button class="control-btn control-btn--empty" disabled></button>
+
+      <button class="control-btn control-left" data-dir="left"><span>◀</span></button>
+      <button class="control-btn control-btn--empty" disabled></button>
+      <button class="control-btn control-right" data-dir="right"><span>▶</span></button>
+
+      <button class="control-btn control-btn--empty" disabled></button>
+      <button class="control-btn control-down" data-dir="down"><span>▼</span></button>
+      <button class="control-btn control-btn--empty" disabled></button>
+    </div>
+  </div>
+
+  <script>
+    // --- Настройки игры ---
+    const GRID_SIZE = 20;        // количество клеток по каждой стороне
+    const TICK_MS   = 140;       // скорость змейки (меньше — быстрее)
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const highscoreEl = document.getElementById('highscore');
+
+    const startOverlay = document.getElementById('startOverlay');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+
+    const startBtn = document.getElementById('startBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+
+    const finalScoreEl = document.getElementById('finalScore');
+    const finalBestEl = document.getElementById('finalBest');
+
+    let cellSize = 0;
+    let snake = [];
+    let direction = { x: 1, y: 0 };
+    let nextDirection = { x: 1, y: 0 };
+    let food = null;
+    let score = 0;
+    let bestScore = 0;
+    let gameLoopId = null;
+    let isRunning = false;
+    let isPaused = false;
+    let isGameOver = false;
+    let eatPulse = 0; // анимация поедания хинкали
+
+    const BEST_KEY = 'adjapuriSnakeBestScore';
+
+    // Загружаем изображение хинкали
+    const khinkaliImg = new Image();
+    // Положите реалистичное изображение хинкали рядом с файлом и назовите его khinkali.png
+    khinkaliImg.src = 'khinkali.png';
+
+    function resizeCanvas() {
+      const maxSize = 500;
+      const availableHeight = window.innerHeight - 220; // запас под шапку и кнопки
+      const size = Math.min(window.innerWidth - 24, availableHeight, maxSize);
+      const finalSize = Math.max(size, 260); // минимальный размер
+
+      canvas.width = finalSize;
+      canvas.height = finalSize;
+      cellSize = Math.floor(finalSize / GRID_SIZE);
+    }
+
+    function initGame() {
+      snake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+      ];
+      direction = { x: 1, y: 0 };
+      nextDirection = { x: 1, y: 0 };
+      score = 0;
+      eatPulse = 0;
+      isGameOver = false;
+      updateScore();
+      spawnFood();
+      draw();
+    }
+
+    function updateScore() {
+      scoreEl.textContent = 'Счёт: ' + score + ' хинкали';
+    }
+
+    function loadBestScore() {
+      try {
+        const stored = localStorage.getItem(BEST_KEY);
+        if (stored) {
+          bestScore = parseInt(stored, 10) || 0;
+        } else {
+          bestScore = 0;
+        }
+      } catch (e) {
+        bestScore = 0;
+      }
+      updateBestLabel();
+    }
+
+    function updateBestLabel() {
+      highscoreEl.textContent = 'Рекорд: ' + bestScore;
+    }
+
+    function updateBestScoreIfNeeded() {
+      if (score > bestScore) {
+        bestScore = score;
+        try {
+          localStorage.setItem(BEST_KEY, String(bestScore));
+        } catch (e) {
+          // игнорируем, если localStorage недоступен
+        }
+      }
+      updateBestLabel();
+    }
+
+    function spawnFood() {
+      let newFood;
+      do {
+        newFood = {
+          x: Math.floor(Math.random() * GRID_SIZE),
+          y: Math.floor(Math.random() * GRID_SIZE)
+        };
+      } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+      food = newFood;
+    }
+
+    function setDirectionFromInput(dir) {
+      let dx = 0, dy = 0;
+      if (dir === 'up')    { dx = 0;  dy = -1; }
+      if (dir === 'down')  { dx = 0;  dy = 1;  }
+      if (dir === 'left')  { dx = -1; dy = 0;  }
+      if (dir === 'right') { dx = 1;  dy = 0;  }
+
+      // запрещаем разворот на 180°
+      if (dx === -direction.x && dy === -direction.y) return;
+
+      nextDirection = { x: dx, y: dy };
+    }
+
+    function handleKeyDown(e) {
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'w':
+        case 'W':
+          setDirectionFromInput('up');
+          break;
+        case 'ArrowDown':
+        case 's':
+        case 'S':
+          setDirectionFromInput('down');
+          break;
+        case 'ArrowLeft':
+        case 'a':
+        case 'A':
+          setDirectionFromInput('left');
+          break;
+        case 'ArrowRight':
+        case 'd':
+        case 'D':
+          setDirectionFromInput('right');
+          break;
+        case ' ':
+          // пробел = пауза/резюм
+          togglePause();
+          break;
+      }
+    }
+
+    function bindControls() {
+      document.addEventListener('keydown', handleKeyDown);
+
+      const buttons = document.querySelectorAll('.control-btn[data-dir]');
+      buttons.forEach(btn => {
+        const dir = btn.getAttribute('data-dir');
+
+        function onPress(evt) {
+          evt.preventDefault();
+          setDirectionFromInput(dir);
+        }
+
+        btn.addEventListener('click', onPress);
+        btn.addEventListener('touchstart', onPress, { passive: false });
+      });
+    }
+
+    function bindUI() {
+      startBtn.addEventListener('click', () => {
+        startNewGame();
+      });
+
+      resumeBtn.addEventListener('click', () => {
+        resumeGame();
+      });
+
+      restartBtn.addEventListener('click', () => {
+        startNewGame();
+      });
+
+      pauseBtn.addEventListener('click', () => {
+        togglePause();
+      });
+    }
+
+    function startLoop() {
+      if (gameLoopId !== null) {
+        clearInterval(gameLoopId);
+      }
+      gameLoopId = setInterval(gameTick, TICK_MS);
+      isRunning = true;
+      isPaused = false;
+    }
+
+    function stopLoop() {
+      if (gameLoopId !== null) {
+        clearInterval(gameLoopId);
+        gameLoopId = null;
+      }
+      isRunning = false;
+    }
+
+    function startNewGame() {
+      hideOverlay(startOverlay);
+      hideOverlay(gameOverOverlay);
+      initGame();
+      updateBestLabel();
+      startLoop();
+    }
+
+    function resumeGame() {
+      if (isGameOver) return;
+      hideOverlay(pauseOverlay);
+      startLoop();
+    }
+
+    function pauseGame() {
+      if (!isRunning || isGameOver) return;
+      stopLoop();
+      isPaused = true;
+      showOverlay(pauseOverlay);
+    }
+
+    function togglePause() {
+      if (!isRunning && !isPaused && !isGameOver) {
+        // игра ещё не начиналась — ничего не делаем
+        return;
+      }
+
+      if (isGameOver) {
+        return;
+      }
+
+      if (isRunning) {
+        pauseGame();
+      } else if (isPaused) {
+        resumeGame();
+      }
+    }
+
+    function gameTick() {
+      direction = nextDirection;
+
+      const head = { ...snake[0] };
+      head.x += direction.x;
+      head.y += direction.y;
+
+      // проверка столкновений со стенами
+      if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+        flashGameOver();
+        handleGameOver();
+        return;
+      }
+
+      // проверка столкновений с собой
+      if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+        flashGameOver();
+        handleGameOver();
+        return;
+      }
+
+      snake.unshift(head);
+
+      // съели хинкали?
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        eatPulse = 4; // запускаем короткую анимацию головы
+        updateScore();
+        spawnFood();
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    function handleGameOver() {
+      stopLoop();
+      isGameOver = true;
+      isPaused = false;
+      updateBestScoreIfNeeded();
+      finalScoreEl.textContent = String(score);
+      finalBestEl.textContent = String(bestScore);
+      showOverlay(gameOverOverlay);
+    }
+
+    function flashGameOver() {
+      canvas.style.filter = 'brightness(2)';
+      setTimeout(() => {
+        canvas.style.filter = 'none';
+      }, 120);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // лёгкая "решётка" на фоне
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#222';
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          if ((x + y) % 2 === 0) {
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+      ctx.restore();
+
+      // рисуем хинкали (еду)
+      if (food) {
+        const padding = Math.floor(cellSize * 0.1);
+        const size = cellSize - padding * 2;
+        const x = food.x * cellSize + padding;
+        const y = food.y * cellSize + padding;
+
+        if (khinkaliImg.complete && khinkaliImg.naturalWidth > 0) {
+          ctx.drawImage(khinkaliImg, x, y, size, size);
+        } else {
+          // запасной вариант — кружок
+          ctx.fillStyle = '#f5e0b8';
+          ctx.beginPath();
+          ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // рисуем змейку
+      snake.forEach((segment, index) => {
+        const baseX = segment.x * cellSize;
+        const baseY = segment.y * cellSize;
+
+        const isHead = index === 0;
+
+        let drawX = baseX + 2;
+        let drawY = baseY + 2;
+        let w = cellSize - 4;
+        let h = cellSize - 4;
+
+        // лёгкий "пульс" головы после поедания хинкали
+        if (isHead && eatPulse > 0) {
+          const bump = Math.min(6, eatPulse * 1.5 + 2);
+          drawX -= bump / 2;
+          drawY -= bump / 2;
+          w += bump;
+          h += bump;
+        }
+
+        const gradient = ctx.createLinearGradient(drawX, drawY, drawX + w, drawY + h);
+        if (isHead) {
+          gradient.addColorStop(0, '#28e06b');
+          gradient.addColorStop(1, '#0f8f42');
+        } else {
+          gradient.addColorStop(0, '#18b657');
+          gradient.addColorStop(1, '#0e6f33');
+        }
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        const r = Math.min(w, h) * 0.3;
+        roundedRect(ctx, drawX, drawY, w, h, r);
+        ctx.fill();
+
+        if (isHead) {
+          // глазки
+          ctx.fillStyle = '#000';
+          const eyeRadius = cellSize * 0.08;
+          const offset = cellSize * 0.18;
+          const cx = baseX + cellSize / 2;
+          const cy = baseY + cellSize / 2 - cellSize * 0.1;
+
+          ctx.beginPath();
+          ctx.arc(cx - offset, cy, eyeRadius, 0, Math.PI * 2);
+          ctx.arc(cx + offset, cy, eyeRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      if (eatPulse > 0) {
+        eatPulse--;
+      }
+    }
+
+    function roundedRect(ctx, x, y, width, height, radius) {
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+    }
+
+    function showOverlay(el) {
+      el.classList.remove('overlay--hidden');
+    }
+
+    function hideOverlay(el) {
+      el.classList.add('overlay--hidden');
+    }
+
+    function setup() {
+      resizeCanvas();
+      loadBestScore();
+      initGame(); // подготовим поле, но игру не запускаем
+      bindControls();
+      bindUI();
+      draw();
+      // стартовый оверлей уже показан в разметке
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      draw();
+    });
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        resizeCanvas();
+        draw();
+      }, 200);
+    });
+
+    setup();
+  </script>
+</body>
+</html>
